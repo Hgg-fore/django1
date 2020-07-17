@@ -1,8 +1,11 @@
 # -*- coding:utf-8 -*-
-from django.shortcuts import render, redirect, HttpResponseRedirect
-from . import models
-from django.http import JsonResponse
 from hashlib import sha1
+
+from django.http import JsonResponse
+from django.shortcuts import render, redirect, HttpResponseRedirect
+from df_goods.models import GoodsInfo
+from . import models
+from . import user_decorator
 
 
 # Create your views here.
@@ -37,6 +40,11 @@ def login(request):
     return render(request, 'df_user/login.html', context)
 
 
+def logout(request):
+    request.session.flush()
+    return redirect('/')
+
+
 def login_handle(request):
     post = request.POST
     name = post.get('username')
@@ -48,7 +56,9 @@ def login_handle(request):
         s1 = sha1()
         s1.update(pwd)
         if s1.hexdigest() == users[0].pwd:
-            red = HttpResponseRedirect('/user/info/')
+            url = request.COOKIES.get('url', '/')
+            # print(url)
+            red = HttpResponseRedirect(url)
             if rem != 0:
                 red.set_cookie('username', name)
             else:
@@ -64,5 +74,16 @@ def login_handle(request):
         return render(request, 'df_user/login.html', context)
 
 
+@user_decorator.login
 def user_info(request):
-    return render(request, 'df_user/user_center_info.html')
+    user_id = request.session.get('user_id')
+    user_name = request.session.get('user_name')
+    goods_ids = request.COOKIES.get('goods_ids', '')
+    goods_list = []
+    if goods_ids != '':
+        goods_ids_list = goods_ids.split(',')
+        for goods_id in goods_ids_list:
+            goods_list.append(GoodsInfo.objects.get(id=goods_id))
+    context = {'username': user_name, 'user_id': user_id, 'last_view_goods': goods_list}
+    print goods_list
+    return render(request, 'df_user/user_center_info.html', context)

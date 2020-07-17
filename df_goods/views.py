@@ -37,4 +37,19 @@ def detail(request, good_id):
     news = goods.type.goodsinfo_set.order_by('-id')[0:2]
     context = {'goods': goods, 'news': news,
                }
-    return render(request, 'df_goods/detail.html', context)
+    response = render(request, 'df_goods/detail.html', context)
+    # last view record
+    goods_ids = request.COOKIES.get('goods_ids', '')
+    goods_id = '%d' % goods.id
+    if goods_ids != '':
+        goods_ids_list = goods_ids.split(',')
+        if goods_ids_list.count(goods_id) >= 1:
+            goods_ids_list.remove(goods_id)
+        goods_ids_list.insert(0, goods_id)
+
+        goods_ids_cookie = ','.join(goods_ids_list[:5])
+    else:
+        goods_ids_cookie = goods_id
+    # print goods_ids_cookie
+    response.set_cookie('goods_ids', goods_ids_cookie)
+    return response
